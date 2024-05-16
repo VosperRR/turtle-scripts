@@ -1,0 +1,136 @@
+local startX, startY, startZ = gps.locate()
+local function savePosition()
+    return gps.locate()
+end
+
+local function returnToStart()
+    local x, y, z = gps.locate()
+    turtle.turnLeft()
+    turtle.turnLeft()
+    for i = 1, math.abs(y - startY) do
+        turtle.up()
+    end
+    if x < startX then
+        for i = 1, math.abs(x - startX) do
+            turtle.forward()
+        end
+    else
+        for i = 1, math.abs(x - startX) do
+            turtle.back()
+        end
+    end
+    turtle.turnLeft()
+    turtle.turnLeft()
+end
+
+local function dropItems()
+    for i = 1, 16 do
+        turtle.select(i)
+        turtle.drop()
+    end
+end
+
+local function ensureChest()
+    if not turtle.detect() then
+        for i = 1, 16 do
+            if turtle.getItemDetail(i) and turtle.getItemDetail(i).name == "minecraft:chest" then
+                turtle.select(i)
+                turtle.place()
+                break
+            end
+        end
+    end
+end
+
+local function refuel()
+    if turtle.getFuelLevel() == "unlimited" or turtle.getFuelLevel() > 0 then
+        return
+    end
+    for i = 1, 16 do
+        if turtle.getItemCount(i) > 0 then
+            turtle.select(i)
+            if turtle.refuel(1) then
+                break
+            end
+        end
+    end
+    if turtle.getFuelLevel() == 0 then
+        error("Out of fuel")
+    end
+end
+
+local function isInventoryFull()
+    for i = 1, 16 do
+        if turtle.getItemCount(i) == 0 then
+            return false
+        end
+    end
+    return true
+end
+
+local function digLayer()
+    for i = 1, 3 do
+        for j = 1, 3 do
+            if isInventoryFull() then
+                local x, y, z = savePosition()
+                returnToStart()
+                ensureChest()
+                dropItems()
+                returnToPosition(x, y, z)
+            end
+            turtle.digDown()
+            turtle.down()
+            turtle.dig()
+            if not turtle.forward() then
+                turtle.dig()
+                turtle.forward()
+            end
+        end
+        if not turtle.back() then
+            turtle.dig()
+            turtle.back()
+        end
+        turtle.turnLeft()
+        if not turtle.back() then
+            turtle.dig()
+            turtle.back()
+        end
+        turtle.turnLeft()
+        turtle.turnLeft()
+    end
+    turtle.turnRight()
+    turtle.turnRight()
+end
+
+local function returnToPosition(x, y, z)
+    turtle.turnLeft()
+    turtle.turnLeft()
+    for i = 1, math.abs(y - startY) do
+        turtle.down()
+    end
+    if x > startX then
+        for i = 1, math.abs(x - startX) do
+            turtle.forward()
+        end
+    else
+        for i = 1, math.abs(x - startX) do
+            turtle.back()
+        end
+    end
+    turtle.turnLeft()
+    turtle.turnLeft()
+end
+
+local function mineToBedrock()
+    while true do
+        refuel()
+        digLayer()
+        local success, data = turtle.inspectDown()
+        if success and data.name == "minecraft:bedrock" then
+            print("Reached bedrock level")
+            break
+        end
+    end
+end
+
+mineToBedrock()
